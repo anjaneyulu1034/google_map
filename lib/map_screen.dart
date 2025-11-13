@@ -14,17 +14,17 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  static const String googleMapsApiKey = 'AIzaSyAT3wIjV73qVXPAlgkyifnns38GztnbNF4';
-  
+  static const String googleMapsApiKey = 'YOUR_GOOGLE_MAPS_API_KEY_HERE';
+
   late GoogleMapController mapController;
   LatLng? currentLocation;
   Set<Marker> markers = {};
   Set<Polyline> polylines = {};
   String? distanceText;
   String? durationText;
-  
+
   final TextEditingController destinationController = TextEditingController();
-  
+
   bool isLoading = false;
   String? errorMessage;
   String currentAddress = "Fetching location...";
@@ -48,16 +48,16 @@ class _MapScreenState extends State<MapScreen> {
     try {
       // Check location permission
       LocationPermission permission = await Geolocator.checkPermission();
-      
+
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        
+
         if (permission == LocationPermission.denied) {
           _showPermissionDeniedDialog();
           return;
         }
       }
-      
+
       if (permission == LocationPermission.deniedForever) {
         _showPermissionPermanentlyDeniedDialog();
         return;
@@ -69,13 +69,16 @@ class _MapScreenState extends State<MapScreen> {
       );
 
       // Get address from coordinates
-      final address = await _getAddressFromLatLng(position.latitude, position.longitude);
-      
+      final address = await _getAddressFromLatLng(
+        position.latitude,
+        position.longitude,
+      );
+
       setState(() {
         currentLocation = LatLng(position.latitude, position.longitude);
         currentAddress = address;
         isLoading = false;
-        
+
         // Add current location marker
         _addCurrentLocationMarker();
       });
@@ -93,7 +96,9 @@ class _MapScreenState extends State<MapScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Location Permission Required'),
-          content: const Text('This app needs location permission to show your current location and calculate routes.'),
+          content: const Text(
+            'This app needs location permission to show your current location and calculate routes.',
+          ),
           actions: [
             TextButton(
               onPressed: () {
@@ -121,7 +126,9 @@ class _MapScreenState extends State<MapScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Location Permission Required'),
-          content: const Text('Location permissions are permanently denied. Please enable them in app settings to use this feature.'),
+          content: const Text(
+            'Location permissions are permanently denied. Please enable them in app settings to use this feature.',
+          ),
           actions: [
             TextButton(
               onPressed: () {
@@ -155,7 +162,10 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  Future<String> _getAddressFromLatLng(double latitude, double longitude) async {
+  Future<String> _getAddressFromLatLng(
+    double latitude,
+    double longitude,
+  ) async {
     try {
       final url = Uri.parse(
         'https://maps.googleapis.com/maps/api/geocode/json?latlng=$latitude,$longitude&key=$googleMapsApiKey',
@@ -195,10 +205,7 @@ class _MapScreenState extends State<MapScreen> {
       Marker(
         markerId: destinationMarkerId,
         position: position,
-        infoWindow: InfoWindow(
-          title: 'Destination',
-          snippet: address,
-        ),
+        infoWindow: InfoWindow(title: 'Destination', snippet: address),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
       ),
     );
@@ -216,7 +223,8 @@ class _MapScreenState extends State<MapScreen> {
           position: location,
           infoWindow: InfoWindow(
             title: 'Marker ${markers.length}',
-            snippet: '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}',
+            snippet:
+                '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}',
           ),
         ),
       );
@@ -244,7 +252,7 @@ class _MapScreenState extends State<MapScreen> {
       polylines.clear();
       distanceText = null;
       durationText = null;
-      
+
       // Clear previous destination marker but keep current location marker
       markers.removeWhere((marker) => marker.markerId == destinationMarkerId);
     });
@@ -267,10 +275,7 @@ class _MapScreenState extends State<MapScreen> {
       _addDestinationMarker(destLocation, destinationController.text);
 
       // Get directions
-      final directions = await _getDirections(
-        currentLocation!,
-        destLocation,
-      );
+      final directions = await _getDirections(currentLocation!, destLocation);
 
       if (directions != null) {
         setState(() {
@@ -288,9 +293,7 @@ class _MapScreenState extends State<MapScreen> {
 
         // Fit map to show both points and route
         final bounds = _getBounds(directions['polyline_points']);
-        mapController.animateCamera(
-          CameraUpdate.newLatLngBounds(bounds, 100),
-        );
+        mapController.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
       }
     } catch (e) {
       setState(() {
@@ -334,10 +337,10 @@ class _MapScreenState extends State<MapScreen> {
       if (data['status'] == 'OK') {
         final route = data['routes'][0];
         final leg = route['legs'][0];
-        
+
         // Decode polyline points
         final points = _decodePolyline(route['overview_polyline']['points']);
-        
+
         return {
           'distance': leg['distance']['text'],
           'duration': leg['duration']['text'],
@@ -380,14 +383,22 @@ class _MapScreenState extends State<MapScreen> {
 
   LatLngBounds _getBounds(List<LatLng> points) {
     double? west, north, east, south;
-    
+
     for (LatLng point in points) {
-      west = west != null ? (point.longitude < west ? point.longitude : west) : point.longitude;
-      north = north != null ? (point.latitude > north ? point.latitude : north) : point.latitude;
-      east = east != null ? (point.longitude > east ? point.longitude : east) : point.longitude;
-      south = south != null ? (point.latitude < south ? point.latitude : south) : point.latitude;
+      west = west != null
+          ? (point.longitude < west ? point.longitude : west)
+          : point.longitude;
+      north = north != null
+          ? (point.latitude > north ? point.latitude : north)
+          : point.latitude;
+      east = east != null
+          ? (point.longitude > east ? point.longitude : east)
+          : point.longitude;
+      south = south != null
+          ? (point.latitude < south ? point.latitude : south)
+          : point.latitude;
     }
-    
+
     return LatLngBounds(
       southwest: LatLng(south!, west!),
       northeast: LatLng(north!, east!),
@@ -401,7 +412,7 @@ class _MapScreenState extends State<MapScreen> {
       distanceText = null;
       durationText = null;
       destinationController.clear();
-      
+
       // Re-add current location marker after clearing
       if (currentLocation != null) {
         _addCurrentLocationMarker();
@@ -486,7 +497,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
           ),
-          
+
           // Destination Input
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -518,7 +529,9 @@ class _MapScreenState extends State<MapScreen> {
                                 width: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
                             : const Text('Calculate Route'),
@@ -542,7 +555,9 @@ class _MapScreenState extends State<MapScreen> {
                                   SizedBox(width: 4),
                                   Text(
                                     'Distance',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -557,7 +572,9 @@ class _MapScreenState extends State<MapScreen> {
                                   SizedBox(width: 4),
                                   Text(
                                     'Duration',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -572,11 +589,14 @@ class _MapScreenState extends State<MapScreen> {
               ],
             ),
           ),
-          
+
           // Error message
           if (errorMessage != null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -598,7 +618,7 @@ class _MapScreenState extends State<MapScreen> {
                 ),
               ),
             ),
-          
+
           // Map
           Expanded(
             child: currentLocation == null
@@ -667,15 +687,23 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     double? west, north, east, south;
-    
+
     for (Marker marker in markers) {
       final position = marker.position;
-      west = west != null ? (position.longitude < west ? position.longitude : west) : position.longitude;
-      north = north != null ? (position.latitude > north ? position.latitude : north) : position.latitude;
-      east = east != null ? (position.longitude > east ? position.longitude : east) : position.longitude;
-      south = south != null ? (position.latitude < south ? position.latitude : south) : position.latitude;
+      west = west != null
+          ? (position.longitude < west ? position.longitude : west)
+          : position.longitude;
+      north = north != null
+          ? (position.latitude > north ? position.latitude : north)
+          : position.latitude;
+      east = east != null
+          ? (position.longitude > east ? position.longitude : east)
+          : position.longitude;
+      south = south != null
+          ? (position.latitude < south ? position.latitude : south)
+          : position.latitude;
     }
-    
+
     return LatLngBounds(
       southwest: LatLng(south!, west!),
       northeast: LatLng(north!, east!),
